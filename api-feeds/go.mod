@@ -1,4 +1,4 @@
-module tes
+module be-feeds
 
 go 1.17
 

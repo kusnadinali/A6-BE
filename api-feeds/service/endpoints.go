@@ -4,27 +4,45 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"tes/datastruct"
+
+	"be-feeds/datastruct"
 
 	"github.com/go-kit/kit/endpoint"
+	"github.com/gorilla/mux"
 )
 
 type (
-	// Endpoints define all endpoint
 	Endpoints struct {
 		GetFeeds endpoint.Endpoint
 	}
 
-	Response struct {
-		Status  bool               `json:"status"`
-		Message string             `json:"msg"`
-		Data    []datastruct.Feeds `json: "data"`
+	GetFeedsRequest struct {
+		Id     string `json:"id"`
+		EndRow string `json:"endRow"`
 	}
 
-	GetFeedsReq struct {
-		ID int `json:"id"`
+	GetFeedsResponse struct {
+		Status    bool               `json:"status"`
+		Message   string             `json:"message"`
+		DataFeeds []datastruct.Feeds `json:"data"`
 	}
 )
+
+func encodeResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
+	return json.NewEncoder(w).Encode(response)
+}
+
+func decodeFeedsRequest(ctx context.Context, r *http.Request) (interface{}, error) {
+	var req GetFeedsRequest
+	vars := mux.Vars(r)
+
+	req = GetFeedsRequest{
+		Id:     vars["id"],
+		EndRow: vars["endRow"],
+	}
+
+	return req, nil
+}
 
 func MakeFeedsEndpoints(svc Service) Endpoints {
 	return Endpoints{
@@ -34,30 +52,12 @@ func MakeFeedsEndpoints(svc Service) Endpoints {
 
 func makeGetFeeds(svc Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		res, err := svc.GetFeeds(ctx)
+		req := request.(GetFeedsRequest)
+		res, err := svc.GetFeeds(ctx, req.Id, req.EndRow)
+
 		if err != nil {
-			return Response{Status: false, Message: err.Error()}, nil
+			return GetFeedsResponse{Status: false, Message: err.Error(), DataFeeds: nil}, err
 		}
-		return Response{Status: true, Message: "succes", Data: res}, nil
+		return GetFeedsResponse{Status: true, Message: "success", DataFeeds: res}, nil
 	}
-}
-
-// r teh apa isinya aih
-func decodeGetFeeds(_ context.Context, r *http.Request) (request interface{}, err error) {
-
-	return r, nil
-}
-
-func encodeResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
-	res := response.(Response)
-
-	// ga pake package util, gatau buat apaan hshs
-
-	//sc := util.StatusCode(res.Message)
-	// if sc == 0 {
-	// 	sc = 500
-	// }
-	//w.WriteHeader(sc)
-
-	return json.NewEncoder(w).Encode(&res)
 }

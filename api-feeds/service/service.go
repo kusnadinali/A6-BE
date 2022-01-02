@@ -2,18 +2,16 @@ package service
 
 import (
 	"context"
-	"tes/datastruct"
+
+	"be-feeds/datastruct"
 
 	"github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/log/level"
 )
-
-//In Go kit, we model a service as an interface.
-// An Interface is an abstract type. Must implements.
-// Interface describes all the methods of a method set and provides the signatures for each method.
 
 type (
 	Service interface {
-		GetFeeds(ctx context.Context) ([]datastruct.Feeds, error)
+		GetFeeds(ctx context.Context, id string, endRow string) ([]datastruct.Feeds, error)
 	}
 
 	service struct {
@@ -25,10 +23,21 @@ type (
 func NewService(repo datastruct.FeedsRepository, logger log.Logger) Service {
 	return &service{
 		repository: repo,
-		logger:     log.With(logger, "repo", "service"),
+		logger:     logger,
 	}
 }
 
-func (s *service) GetFeeds(ctx context.Context) ([]datastruct.Feeds, error) {
-	return s.repository.GetFeeds(ctx)
+func (s service) GetFeeds(ctx context.Context, id string, endRow string) ([]datastruct.Feeds, error) {
+	logger := log.With(s.logger, "method", "GetUser")
+
+	dataFeed, err := s.repository.GetFeeds(ctx, id, endRow)
+
+	if err != nil {
+		level.Error(logger).Log("err", err)
+		return nil, err
+	}
+
+	logger.Log("Get Feeds", "userID: "+id+", MaxData: "+endRow)
+
+	return dataFeed, nil
 }
